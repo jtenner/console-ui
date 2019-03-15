@@ -1,0 +1,22 @@
+{
+  "name": "console-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Joshua <tenner.joshua@gmail.com>",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/chalk": "^2.2.0",
+    "@types/node": "^11.11.3",
+    "@types/string-width": "^2.0.0",
+    "typescript": "^3.3.3333"
+  },
+  "dependencies": {
+    "chalk": "^2.4.2",
+    "decode-keypress": "0.0.3",
+    "string-width": "^3.1.0"
+  }
+}
