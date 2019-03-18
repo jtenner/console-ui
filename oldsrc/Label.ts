@@ -1,30 +1,31 @@
 import { Control } from "./Control";
 import { Window } from "./Window";
-import chalk from "chalk";
-import readline from "readline";
+import chalk, { Chalk } from "chalk";
 import stringWidth from "string-width";
 import { KeyPressEvent } from "./types/KeyPressEvent";
 
 export class Label extends Control {
   public readonly height = 1;
-  public textColor: number = 0xFFFFFF;
+  public textColorFunc: Chalk = chalk.rgb(255, 255, 255);
   public text: string = "";
 
   constructor() {
     super();
   }
 
-  update(window: Window): void {
+  setColor(color: number): this {
+    this.textColorFunc = chalk.rgb(
+      (color >> 16) & 255,
+      (color >> 8) & 255,
+      color & 255,
+    );
+    return this;
+  }
+
+  update(window: Window): this {
     // parse the characters
     const chars = this.text.match(/./ug)!;
-    if (!chars || chars.length === 0) return;
-
-    // get the chalk color func
-    const colorFunc = chalk.rgb(
-      (this.textColor >> 16) & 255,
-      (this.textColor >> 8) & 255,
-      this.textColor & 255,
-    );
+    if (!chars || chars.length === 0) return this;
 
     // mutable variables
     let text: string = "";
@@ -40,15 +41,14 @@ export class Label extends Control {
       length += width;
     }
 
-    // write to stdout
-    const stdout = window.stdout;
-    readline.cursorTo(stdout, this.x, this.y);
-    stdout.write(colorFunc(text) + chalk.reset(""));
+
+    this.write(window.stdout, this.x, this.y, text, this.textColorFunc);
+    return this;
   }
 
-  quickUpdate(window: Window): void {
-    this.update(window);
+  quickUpdate(window: Window): this {
+    return this.update(window);
   }
 
-  keyPress(event: KeyPressEvent): void {}
+  keyPress(event: KeyPressEvent): this { return this; }
 }

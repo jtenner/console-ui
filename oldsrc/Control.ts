@@ -3,10 +3,9 @@ import { KeyPressEvent } from "./types/KeyPressEvent";
 import { Window } from "./Window";
 import stringWidth from "string-width";
 import readline from "readline";
+import chalk, { Chalk } from "chalk";
 
 const join = (...args: string[]) => args.join('');
-type ColorFunc = (...args: string[]) => string;
-
 
 export abstract class Control extends EventEmitter {
   x: number = 0;
@@ -21,14 +20,15 @@ export abstract class Control extends EventEmitter {
     super();
   }
 
-  public abstract keyPress(event: KeyPressEvent): void;
-  public abstract update(window: Window): void;
-  public abstract quickUpdate(window: Window): void;
+  public abstract keyPress(event: KeyPressEvent): this;
+  public abstract update(window: Window): this;
+  public abstract quickUpdate(window: Window): this;
 
-  public write(stdout: NodeJS.WriteStream, x: number, y: number, text: string, colorFunc: ColorFunc = join): void {
-    if (text.length === 0) return;
+  public write(stdout: NodeJS.WriteStream, x: number, y: number, text: string, colorFunc: Chalk = chalk.rgb(255, 255, 255)): this {
+    if (text.length === 0) return this;
     readline.cursorTo(stdout, x, y);
     stdout.write(colorFunc(text));
+    return this;
   }
 
   public writeBordered(
@@ -38,16 +38,17 @@ export abstract class Control extends EventEmitter {
     left: string,
     right: string,
     text: string,
-    leftColorFunc: ColorFunc = join,
-    rightColorFunc: ColorFunc = join,
-    textColorFunc: ColorFunc = join,
-  ): void {
+    leftColorFunc: Chalk = chalk.rgb(255, 255, 255),
+    rightColorFunc: Chalk = chalk.rgb(255, 255, 255),
+    textColorFunc: Chalk = chalk.rgb(255, 255, 255),
+  ): this {
     readline.cursorTo(stdout, x, y);
     stdout.write(
       leftColorFunc(left)
       + textColorFunc(text)
       + rightColorFunc(right)
     );
+    return this;
   }
 
   truncate(input: string, maxWidth: number): string {

@@ -1,7 +1,6 @@
 import { Control } from "./Control";
 import { Window } from "./Window";
-import chalk from "chalk";
-import readline from "readline";
+import chalk, { Chalk } from "chalk";
 import stringWidth from "string-width";
 import { KeyPressEvent } from "./types/KeyPressEvent";
 import { ListItem } from "./ListItem";
@@ -10,18 +9,27 @@ class Border {
   bottom: string = "─";
   bottomLeft: string = "└";
   bottomRight: string = "┘";
-  color: number = 0xFFFFFF;
+  colorFunc: Chalk = chalk.rgb(255, 255, 255);
   top: string = "═";
   topLeft: string = "╒";
   topRight: string = "╕";
   left: string = "│";
   right: string = "│";
+
+  setColor(color: number): this {
+    this.colorFunc = chalk.rgb(
+      (color >> 16) & 255,
+      (color >> 8) & 255,
+      color & 255,
+    );
+    return this;
+  }
 }
 
 export class ListBox<T> extends Control {
 
   title: string = "";
-  titleColor: number = 0xFFFFFF;
+  titleColorFunc: Chalk = chalk.rgb(255, 255, 255);
 
   border: Border = new Border();
   scrollIndex: number = 0;
@@ -29,21 +37,42 @@ export class ListBox<T> extends Control {
 
   listItems: ListItem<T>[] = [];
 
-  keyPress(event: KeyPressEvent): void {
+  setTitleColor(color: number): this {
+    this.titleColorFunc = chalk.rgb(
+      (color >> 16) & 255,
+      (color >> 8) & 255,
+      color & 255,
+    );
+    return this;
+  }
+
+  keyPress(event: KeyPressEvent): this {
     const { sequence, window } = event;
 
     if (sequence.name === "down") {
       this.select(this.selectedIndex + 1);
-      return;
+      return this;
     }
 
     if (sequence.name === "up") {
       this.select(this.selectedIndex - 1);
-      return;
+      return this;
     }
+
+    if (sequence.name === "pageup") {
+      this.scrollTo(this.scrollIndex - this.height - 2);
+      return this;
+    }
+
+    if (sequence.name === "pagedown") {
+      this.scrollTo(this.scrollIndex + this.height - 2);
+      return this;
+    }
+
+    return this;
   }
 
-  quickUpdate(window: Window): void {
+  quickUpdate(window: Window): this {
     const length = this.listItems.length;
     const { left, right } = this.border;
     const leftWidth = stringWidth(left);
@@ -72,20 +101,13 @@ export class ListBox<T> extends Control {
         const spaces = this.width - leftWidth - rightWidth - itemLength;
         effectiveText = spaces > 0 ? item.text + " ".repeat(spaces) : effectiveText;
 
-        const listItemColor = item.color;
-        const listItemColorFunction = chalk.rgb(
-          (listItemColor >> 16) & 255,
-          (listItemColor >> 8) & 255,
-          listItemColor & 255,
-        );
-
         // write the line
         this.write(
           stdout,
           this.x + leftWidth,
           this.y + 1 + i,
           effectiveText,
-          item.selected ? listItemColorFunction.inverse : listItemColorFunction,
+          item.selected ? item.colorFunc.inverse : item.colorFunc,
         )
       } else {
         this.write(
@@ -97,21 +119,16 @@ export class ListBox<T> extends Control {
       }
     }
 
-    this.setCursorPosition();
+    return this.setCursorPosition();
   }
 
-  update(window: Window): void {
+  update(window: Window): this {
     // selected item
     for (let i = 0; i < this.listItems.length; i++) {
       this.listItems[i].selected = i === this.selectedIndex;
     }
 
-    const borderColor = this.border.color;
-    const borderColorFunction = chalk.rgb(
-      (borderColor >> 16) & 255,
-      (borderColor >> 8) & 255,
-      borderColor & 255,
-    );
+    const borderColorFunction = this.border.colorFunc;
     const {
       bottom,
       bottomLeft,
@@ -137,12 +154,7 @@ export class ListBox<T> extends Control {
     // write the top border
     this.write(stdout, this.x, this.y, topLeft + top.repeat(topCharCount) + " ".repeat(topSpaceCount) + topRight, borderColorFunction);
 
-    const titleColorFunction = chalk.rgb(
-      (this.titleColor >> 16) & 255,
-      (this.titleColor >> 8) & 255,
-      (this.titleColor) & 255,
-    );
-    this.write(stdout, this.x + topLeftWidth, this.y, this.truncate(this.title, this.width - 2), titleColorFunction);
+    this.write(stdout, this.x + topLeftWidth, this.y, this.truncate(this.title, this.width - 2), this.titleColorFunc);
 
     const length = this.listItems.length;
     const leftWidth = stringWidth(left);
@@ -169,14 +181,6 @@ export class ListBox<T> extends Control {
           effectiveText = this.truncate(item.text, maxItemLength);
         }
 
-        // get the listItemColorFunction
-        const listItemColor = item.color;
-        const listItemColorFunction = chalk.rgb(
-          (listItemColor >> 16) & 255,
-          (listItemColor >> 8) & 255,
-          listItemColor & 255,
-        );
-
         // draw the list item with the border in one go
         this.writeBordered(
           stdout,
@@ -187,7 +191,7 @@ export class ListBox<T> extends Control {
           effectiveText,
           borderColorFunction,
           borderColorFunction,
-          item.selected ? listItemColorFunction.inverse : listItemColorFunction,
+          item.selected ? item.colorFunc.inverse : item.colorFunc,
         );
       } else {
         this.writeBordered(stdout, this.x, this.y + 1 + i, left, right, " ".repeat(maxItemLength), borderColorFunction, borderColorFunction);
@@ -213,10 +217,10 @@ export class ListBox<T> extends Control {
       borderColorFunction,
     );
 
-    this.setCursorPosition();
+    return this.setCursorPosition();
   }
 
-  select(index: number): void {
+  select(index: number): this {
     const maxSelectableIndex = this.listItems.length - 1;
     const visibleItemCount = this.height - 2;
     const currentLastVisibleItemIndex = this.scrollIndex + visibleItemCount;
@@ -241,27 +245,43 @@ export class ListBox<T> extends Control {
     } else if (this.selectedIndex >= currentLastVisibleItemIndex) {
       this.scrollTo(this.selectedIndex - visibleItemCount + 1);
     }
+    return this;
   }
 
-  scrollTo(index: number): void {
+  scrollTo(index: number): this {
     const visibleItemCount = this.height - 2;
     const maxScrollIndex = Math.max(0, this.listItems.length - visibleItemCount);
     index = Math.min(index, maxScrollIndex);
     index = Math.max(0, index);
     this.scrollIndex = index;
+    return this;
   }
 
-  setCursorPosition(): void {
+  setCursorPosition(): this {
     const visibleItemCount = this.height - 2;
     if (this.listItems.length < visibleItemCount) {
       this.cursorX = this.x + this.width - 1;
       this.cursorY = this.y + 1;
-      return;
+      return this;
     }
 
     const maxScrollIndex = Math.max(0, this.listItems.length - visibleItemCount);
     const scrollRatio = this.scrollIndex / maxScrollIndex;
     this.cursorX = this.x + this.width - 1;
     this.cursorY = this.y + Math.floor(scrollRatio * (this.height - 3)) + 1;
+    return this;
+  }
+
+  add(listItem: ListItem<T>): this {
+    this.listItems.push(listItem);
+    return this;
+  }
+
+  remove(listItem: ListItem<T>): this {
+    const index = this.listItems.indexOf(listItem);
+    if (index !== -1) {
+      this.listItems.splice(index, 1);
+    }
+    return this;
   }
 }

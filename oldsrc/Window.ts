@@ -31,7 +31,7 @@ export class Window extends EventEmitter {
    *
    * @param {any} data - The output of the `"data"` event.
    */
-  keyPress(data: any): void {
+  keyPress(data: any): this {
     // decode the keypress
     const result: KeySequence = decodeKeypress(data);
 
@@ -62,15 +62,16 @@ export class Window extends EventEmitter {
         }
 
         readline.cursorTo(stdout, control.cursorX, control.cursorY);
-        return;
+        return this;
       }
     }
+    return this;
   }
 
   /**
    * Clears the screen and redraws each control calling `update(this)` on each control.
    */
-  update(): void {
+  update(): this {
     readline.cursorTo(stdout, 0, 0);
     readline.clearScreenDown(stdout);
     let cursorX: number = 0,
@@ -83,12 +84,13 @@ export class Window extends EventEmitter {
       }
     }
     readline.cursorTo(this.stdout, cursorX, cursorY);
+    return this;
   }
 
   /**
    * This method does a quick refresh on every control.
    */
-  quickUpdate(): void {
+  quickUpdate(): this {
     let cursorX: number = 0,
       cursorY: number = 0;
     for (const control of this.controls) {
@@ -99,24 +101,29 @@ export class Window extends EventEmitter {
       }
     }
     readline.cursorTo(this.stdout, cursorX, cursorY);
+    return this;
   }
 
   /**
    * Loops over the window's control and sets the focused property on each one.
    *
    * @param {Control} target - The target control to focus.
+   * @returns {this}
    */
-  focus(target: Control): void {
+  focus(target: Control): this {
     for (const control of this.controls) {
       control.focused = target === control;
     }
+    return this;
   }
 
   /**
    * This method is called when the window is resized.
+   *
+   * @returns {this}
    */
-  resize(): void {
-    this.update();
+  resize(): this {
+    return this.update();
   }
 
   /**
@@ -126,9 +133,22 @@ export class Window extends EventEmitter {
    * @param {number} y - The y coordinate of the debug value.
    * @param {string} key - The string representing the key.
    * @param {string} value - The string representing the value.
+   * @returns {this}
    */
-  debug(x: number, y: number, key: string, value: string): void {
+  debug(x: number, y: number, key: string, value: string): this {
     readline.cursorTo(this.stdout, x, y);
     this.stdout.write(chalk.reset(key) + ": " + chalk.green(value) + chalk.reset(""));
+    return this;
+  }
+
+  /**
+   * Add a control to the window.
+   *
+   * @param control - The control to be added to the window.
+   * @returns {this}
+   */
+  add(control: Control): this {
+    this.controls.push(control);
+    return this;
   }
 }
