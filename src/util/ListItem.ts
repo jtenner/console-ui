@@ -1,11 +1,15 @@
 import chalk, { Chalk } from "chalk";
 
 export class ListItem<T> {
-  colorFunc: Chalk = chalk.rgb(255, 255, 255);
+  colorFunc: Chalk | null = null;
   value: T | null = null;
   text: string = "";
   selected: boolean = false;
 
+  constructor(value: T | null = null, text: string = "") {
+    this.value = value;
+    this.text = text;
+  }
   public setColor(color: number): this {
     this.colorFunc = chalk.rgb(
       (color >> 16) & 255,
